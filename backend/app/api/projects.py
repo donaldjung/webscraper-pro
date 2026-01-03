@@ -117,8 +117,8 @@ async def get_project(
     """Get a specific project."""
     result = await db.execute(
         select(Project).where(
-            Project.id == project_id,
-            Project.user_id == current_user.id,
+            Project.id == str(project_id),
+            Project.user_id == str(current_user.id),
         )
     )
     project = result.scalar_one_or_none()
@@ -165,8 +165,8 @@ async def update_project(
     """Update a project."""
     result = await db.execute(
         select(Project).where(
-            Project.id == project_id,
-            Project.user_id == current_user.id,
+            Project.id == str(project_id),
+            Project.user_id == str(current_user.id),
         )
     )
     project = result.scalar_one_or_none()
@@ -211,8 +211,8 @@ async def delete_project(
     """Delete a project and all its data."""
     result = await db.execute(
         select(Project).where(
-            Project.id == project_id,
-            Project.user_id == current_user.id,
+            Project.id == str(project_id),
+            Project.user_id == str(current_user.id),
         )
     )
     project = result.scalar_one_or_none()

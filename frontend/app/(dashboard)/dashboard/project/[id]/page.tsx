@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useState } from "react";
+import { ContentViewer } from "@/components/content-viewer";
 
 interface Project {
   id: string;
@@ -83,6 +84,7 @@ export default function ProjectDetailPage() {
   const queryClient = useQueryClient();
   const projectId = params.id as string;
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
 
   const { data: project, isLoading: projectLoading } = useQuery({
     queryKey: ["project", projectId],
@@ -100,6 +102,20 @@ export default function ProjectDetailPage() {
       pages: Page[];
       total: number;
     }>,
+  });
+
+  const { data: pageDetail } = useQuery({
+    queryKey: ["page", selectedPageId],
+    queryFn: () => api.getPage(selectedPageId!) as Promise<{
+      id: string;
+      url: string;
+      title: string | null;
+      content_markdown: string | null;
+      content_html: string | null;
+      word_count: number;
+      scraped_at: string;
+    }>,
+    enabled: !!selectedPageId,
   });
 
   const startScrapeMutation = useMutation({
@@ -371,7 +387,12 @@ export default function ProjectDetailPage() {
                   {pagesData?.pages?.map((page) => (
                     <div
                       key={page.id}
-                      className="p-3 rounded-lg border border-border/50 bg-background/50 hover:border-primary/50 transition-colors cursor-pointer"
+                      onClick={() => setSelectedPageId(page.id)}
+                      className={`p-3 rounded-lg border transition-colors cursor-pointer ${
+                        selectedPageId === page.id 
+                          ? "border-primary bg-primary/5" 
+                          : "border-border/50 bg-background/50 hover:border-primary/50"
+                      }`}
                     >
                       <h4 className="font-medium truncate">{page.title || "Untitled"}</h4>
                       <p className="text-xs text-muted-foreground truncate">{page.url}</p>
@@ -415,6 +436,39 @@ export default function ProjectDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Content Viewer Dialog */}
+      {selectedPageId && pageDetail && (
+        <Dialog open={!!selectedPageId} onOpenChange={() => setSelectedPageId(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>{pageDetail.title || "Untitled"}</DialogTitle>
+              <DialogDescription>
+                <a 
+                  href={pageDetail.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:text-primary flex items-center gap-1"
+                >
+                  {pageDetail.url}
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="flex-1 mt-4">
+              <div className="prose prose-invert prose-sm max-w-none p-4">
+                <pre className="whitespace-pre-wrap text-sm font-mono bg-muted/50 p-4 rounded-lg overflow-auto">
+                  {pageDetail.content_markdown || "No content available"}
+                </pre>
+              </div>
+            </ScrollArea>
+            <div className="flex items-center justify-between pt-4 border-t text-sm text-muted-foreground">
+              <span>{pageDetail.word_count} words</span>
+              <span>Scraped {new Date(pageDetail.scraped_at).toLocaleDateString()}</span>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
